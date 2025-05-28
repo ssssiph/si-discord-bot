@@ -349,4 +349,4 @@ async def marriage_proposals_cmd(ctx, page: int = 1):
         embed.add_field(name=name, value=f"Отправлено <t:{int(dt.timestamp())}:R>", inline=False)
     await ctx.send(embed=embed)
 
-bot.run(os.environ["TOKEN"])
+bot.run(os.getenv("DISCORD_TOKEN"))
