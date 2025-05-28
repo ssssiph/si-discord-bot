@@ -183,6 +183,10 @@ async def marriageaccept(interaction: discord.Interaction, user: discord.User):
 @marriage.command(name="decline", description="Отклонить предложение о браке")
 @app_commands.describe(user="Пользователь, чьё предложение вы отклоняете")
 async def marriagedecline(interaction: discord.Interaction, user: discord.User):
+    bot.cursor.execute("SELECT 1 FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?", (user.id, interaction.user.id))
+    if not bot.cursor.fetchone():
+        return await interaction.response.send_message("❌ У вас нет предложения от этого пользователя.", ephemeral=True)
+    
     bot.cursor.execute("DELETE FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?", (user.id, interaction.user.id))
     bot.db.commit()
     await interaction.response.send_message("✅ Предложение отклонено.")
@@ -190,6 +194,10 @@ async def marriagedecline(interaction: discord.Interaction, user: discord.User):
 @marriage.command(name="divorce", description="Развестись с пользователем")
 @app_commands.describe(user="Партнёр, с которым вы хотите развестись")
 async def marriagedivorce(interaction: discord.Interaction, user: discord.User):
+    bot.cursor.execute("SELECT 1 FROM marriages WHERE user_id = ? AND partner_id = ?", (interaction.user.id, user.id))
+    if not bot.cursor.fetchone():
+        return await interaction.response.send_message("❌ Вы не состоите в браке с этим пользователем.", ephemeral=True)
+    
     bot.cursor.execute("DELETE FROM marriages WHERE user_id = ? AND partner_id = ?", (interaction.user.id, user.id))
     bot.cursor.execute("DELETE FROM marriages WHERE user_id = ? AND partner_id = ?", (user.id, interaction.user.id))
     bot.db.commit()
@@ -218,8 +226,12 @@ bot.tree.add_command(marriage)
 
 @bot.command(name="sync")
 async def sync_commands(ctx):
+    if not ctx.author.guild_permissions.administrator:
+        return await ctx.send("⛔ Только администратор может синхронизировать команды.")
+    
+    bot.tree.clear_commands()
     await bot.tree.sync()
     await ctx.send("✅ Слэш-команды синхронизированы!")
-    print(bot.tree.commands)
+    print([cmd.name for cmd in bot.tree.get_commands()])
 
 bot.run(os.getenv("DISCORD_TOKEN"))
