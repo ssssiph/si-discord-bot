@@ -45,7 +45,7 @@ class MyBot(commands.Bot):
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS marriage_limits (
             user_id INTEGER PRIMARY KEY,
-            limit INTEGER DEFAULT 1
+            marriage_limit INTEGER DEFAULT 1
         )
         """)
         self.cursor.execute("""
@@ -160,14 +160,14 @@ async def marriage_marry(interaction: discord.Interaction, member: discord.Membe
     if member.id == interaction.user.id:
         return await interaction.response.send_message("❌ Вы не можете жениться на себе.", ephemeral=True)
 
-    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
+    bot.cursor.execute("SELECT marriage_limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
     result = bot.cursor.fetchone()
-    limit = result[0] if result else DEFAULT_MARRIAGE_LIMIT
+    marriage_limit = result[0] if result else DEFAULT_MARRIAGE_LIMIT
 
     bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (interaction.user.id,))
     count = bot.cursor.fetchone()[0]
-    if count >= limit:
-        return await interaction.response.send_message(f"❌ У вас уже максимальное количество партнёров ({limit}).", ephemeral=True)
+    if count >= marriage_limit:
+        return await interaction.response.send_message(f"❌ У вас уже максимальное количество партнёров ({marriage_limit}).", ephemeral=True)
 
     bot.cursor.execute("SELECT 1 FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?", (interaction.user.id, member.id))
     if bot.cursor.fetchone():
@@ -195,24 +195,24 @@ async def marriage_accept(interaction: discord.Interaction, user: discord.User):
     if not result:
         return await interaction.response.send_message("❌ У этого пользователя нет предложения для вас.", ephemeral=True)
 
-    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
-    target_limit = bot.cursor.fetchone()
-    target_limit = target_limit[0] if target_limit else DEFAULT_MARRIAGE_LIMIT
+    bot.cursor.execute("SELECT marriage_limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
+    target_marriage_limit = bot.cursor.fetchone()
+    target_marriage_limit = target_marriage_limit[0] if target_marriage_limit else DEFAULT_MARRIAGE_LIMIT
 
     bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (interaction.user.id,))
     target_marriages = bot.cursor.fetchone()[0]
 
-    if target_marriages >= target_limit:
+    if target_marriages >= target_marriage_limit:
         return await interaction.response.send_message("❌ Вы достигли лимита браков.", ephemeral=True)
 
-    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (user.id,))
-    proposer_limit = bot.cursor.fetchone()
-    proposer_limit = proposer_limit[0] if proposer_limit else DEFAULT_MARRIAGE_LIMIT
+    bot.cursor.execute("SELECT marriage_limit FROM marriage_limits WHERE user_id = ?", (user.id,))
+    proposer_marriage_limit = bot.cursor.fetchone()
+    proposer_marriage_limit = proposer_marriage_limit[0] if proposer_marriage_limit else DEFAULT_MARRIAGE_LIMIT
 
     bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (user.id,))
     proposer_marriages = bot.cursor.fetchone()[0]
 
-    if proposer_marriages >= proposer_limit:
+    if proposer_marriages >= proposer_marriage_limit:
         return await interaction.response.send_message("❌ Отправитель достиг лимита браков.", ephemeral=True)
 
     now = datetime.utcnow().isoformat()
