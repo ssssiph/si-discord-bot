@@ -85,8 +85,29 @@ async def send_help(ctx_or_interaction):
     embed = discord.Embed(title="🤖 Помощь по командам", color=0x5865F2)
     embed.add_field(name="Префикс", value=f"`{prefix}`", inline=False)
     embed.add_field(name="Сервер поддержки", value=SUPPORT_SERVER, inline=False)
-    commands_text = "\n".join(f"`{prefix}{cmd}` - {desc}" for cmd, desc in HELP_COMMANDS.items())
-    embed.add_field(name="Доступные команды", value=commands_text, inline=False)
+
+    categories = {
+        "🛡️ Модерация": {
+            f"{prefix}prefix": "Изменить префикс команд"
+        },
+        "💰 Экономика": {
+            "Скоро": "Экономика скоро будет добавлена. (мне лень делать)"
+        },
+        "🎭 Развлечения": {
+            f"{prefix}marriage info": "💍 Информация про брак",
+            f"{prefix}marriage accept <user>": "💍 Принять предложение о браке",
+            f"{prefix}marriage decline <user>": "💍 Отклонить предложение о браке",
+            f"{prefix}marriage divorce <user>": "💍 Развестись с кем-то",
+            f"{prefix}marriage list": "💍 Просмотреть свои браки",
+            f"{prefix}marriage marry <member>": "💍 Отправить предложение о браке кому-то",
+            f"{prefix}marriage proposals [page]": "💍 Посмотреть предложения браков"
+        }
+    }
+
+    for category, commands in categories.items():
+        commands_text = "\n".join(f"`{cmd}` - {desc}" for cmd, desc in commands.items())
+        embed.add_field(name=category, value=commands_text, inline=False)
+
     embed.set_footer(text="Спасибо, что используете нашего бота 💙")
 
     if isinstance(ctx_or_interaction, commands.Context):
