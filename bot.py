@@ -1,4 +1,5 @@
 import os
+import discord
 from discord.ext import commands
 from db import get_prefix, init_db
 from commands import setup_commands
