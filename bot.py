@@ -216,4 +216,10 @@ async def marriageproposals(interaction: discord.Interaction, page: int = 1):
 
 bot.tree.add_command(marriage)
 
+@bot.command(name="sync")
+async def sync_commands(ctx):
+    await bot.tree.sync()
+    await ctx.send("✅ Слэш-команды синхронизированы!")
+    print(bot.tree.commands)
+
 bot.run(os.getenv("DISCORD_TOKEN"))
