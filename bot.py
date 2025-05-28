@@ -6,7 +6,7 @@ import os
 from datetime import datetime
 import sqlite3
 
-# ─── Базовые настройки ─────────────────────────────
+# ─── Базовые настройки ────────────────────────────
 DEFAULT_PREFIX = "s!"
 SUPPORT_SERVER = "https://discord.gg/g24dUqCxjt"
 DEFAULT_MARRIAGE_LIMIT = 1
@@ -19,7 +19,6 @@ intents.members = True
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.get_prefix, intents=intents)
-        self.tree = app_commands.CommandTree(self)
         self.prefixes = {}
         self.db = sqlite3.connect("bot.db")
         self.cursor = self.db.cursor()
@@ -71,8 +70,9 @@ class MyBot(commands.Bot):
         return DEFAULT_PREFIX
 
 bot = MyBot()
+bot.tree = app_commands.CommandTree(bot)
 
-# ─── Команда /prefix ────────────────────────────────
+# ─── Команда /prefix ──────────────────────────
 @bot.tree.command(name="prefix", description="Изменить префикс команд")
 @app_commands.describe(new_prefix="Новый префикс")
 async def change_prefix(interaction: discord.Interaction, new_prefix: str):
@@ -84,7 +84,7 @@ async def change_prefix(interaction: discord.Interaction, new_prefix: str):
     bot.db.commit()
     await interaction.response.send_message(f"✅ Префикс изменён на `{new_prefix}`")
 
-# ─── Команда help ──────────────────────────────────
+# ─── Команда help ───────────────────────
 HELP_COMMANDS = {
     "help": "Показать это сообщение",
     "prefix": "Изменить префикс команд",
@@ -184,5 +184,50 @@ async def marriage_marry(interaction: discord.Interaction, member: discord.Membe
     embed.set_footer(text="Чтобы подтвердить, используйте команду /marriage_accept")
 
     await interaction.response.send_message(embed=embed)
+
+# ─── Команда marriage_accept ────────────────────────────────
+@bot.tree.command(name="marriage_accept", description="Принять предложение о браке")
+@app_commands.describe(user="Пользователь, чьё предложение вы принимаете")
+async def marriage_accept(interaction: discord.Interaction, user: discord.User):
+    bot.cursor.execute("SELECT timestamp FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?",
+                       (user.id, interaction.user.id))
+    result = bot.cursor.fetchone()
+    if not result:
+        return await interaction.response.send_message("❌ У этого пользователя нет предложения для вас.", ephemeral=True)
+
+    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
+    target_limit = bot.cursor.fetchone()
+    target_limit = target_limit[0] if target_limit else DEFAULT_MARRIAGE_LIMIT
+
+    bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (interaction.user.id,))
+    target_marriages = bot.cursor.fetchone()[0]
+
+    if target_marriages >= target_limit:
+        return await interaction.response.send_message("❌ Вы достигли лимита браков.", ephemeral=True)
+
+    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (user.id,))
+    proposer_limit = bot.cursor.fetchone()
+    proposer_limit = proposer_limit[0] if proposer_limit else DEFAULT_MARRIAGE_LIMIT
+
+    bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (user.id,))
+    proposer_marriages = bot.cursor.fetchone()[0]
+
+    if proposer_marriages >= proposer_limit:
+        return await interaction.response.send_message("❌ Отправитель достиг лимита браков.", ephemeral=True)
+
+    now = datetime.utcnow().isoformat()
+
+    bot.cursor.executemany(
+        "INSERT INTO marriages (user_id, partner_id, timestamp) VALUES (?, ?, ?)",
+        [
+            (interaction.user.id, user.id, now),
+            (user.id, interaction.user.id, now)
+        ]
+    )
+
+    bot.cursor.execute("DELETE FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?", (user.id, interaction.user.id))
+    bot.db.commit()
+
+    await interaction.response.send_message(f"💖 {interaction.user.mention} и {user.mention} теперь в браке!")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
