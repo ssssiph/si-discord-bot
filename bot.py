@@ -70,7 +70,6 @@ class MyBot(commands.Bot):
         return DEFAULT_PREFIX
 
 bot = MyBot()
-bot.tree = app_commands.CommandTree(bot)
 
 # ─── Команда /prefix ──────────────────────────
 @bot.tree.command(name="prefix", description="Изменить префикс команд")
