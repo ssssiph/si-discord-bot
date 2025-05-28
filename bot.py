@@ -14,7 +14,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 
-bot = commands.Bot(command_prefix="s!", intents=intents)
+bot = commands.Bot(command_prefix="s!", intents=intents, help_command=None)
 tree = bot.tree
 
 # =================== DATABASE ===================
