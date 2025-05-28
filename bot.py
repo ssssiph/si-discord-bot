@@ -1,241 +1,188 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import asyncio
 import os
-import mysql.connector
-from dotenv import load_dotenv
+from datetime import datetime
+import sqlite3
 
-load_dotenv()
-
-TOKEN = os.getenv("DISCORD_TOKEN")
-DB_URL = os.getenv("DATABASE_URL")
+# ─── Базовые настройки ─────────────────────────────
+DEFAULT_PREFIX = "s!"
+SUPPORT_SERVER = "https://discord.gg/g24dUqCxjt"
+DEFAULT_MARRIAGE_LIMIT = 1
 
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
+intents.members = True
 
-bot = commands.Bot(command_prefix="s!", intents=intents, help_command=None)
-tree = bot.tree
+class MyBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix=self.get_prefix, intents=intents)
+        self.tree = app_commands.CommandTree(self)
+        self.prefixes = {}
+        self.db = sqlite3.connect("bot.db")
+        self.cursor = self.db.cursor()
+        self.create_tables()
 
-# =================== DATABASE ===================
-import re
-import urllib.parse as up
+    async def setup_hook(self):
+        await self.tree.sync()
 
-parsed = re.match(r"mysql:\/\/(?P<user>.*?):(?P<password>.*?)@(?P<host>.*?):(?P<port>\d+)\/(?P<db>.+)", DB_URL)
-conn = mysql.connector.connect(
-    user=parsed.group("user"),
-    password=parsed.group("password"),
-    host=parsed.group("host"),
-    port=parsed.group("port"),
-    database=parsed.group("db"),
-)
-cursor = conn.cursor()
+    def create_tables(self):
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prefixes (
+            guild_id INTEGER PRIMARY KEY,
+            prefix TEXT
+        )
+        """)
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS marriages (
+            user_id INTEGER,
+            partner_id INTEGER,
+            timestamp TEXT,
+            PRIMARY KEY(user_id, partner_id)
+        )
+        """)
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS marriage_limits (
+            user_id INTEGER PRIMARY KEY,
+            limit INTEGER DEFAULT 1
+        )
+        """)
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS marriage_proposals (
+            proposer_id INTEGER,
+            target_id INTEGER,
+            timestamp TEXT,
+            PRIMARY KEY(proposer_id, target_id)
+        )
+        """)
+        self.db.commit()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS prefixes (
-    guild_id BIGINT PRIMARY KEY,
-    prefix VARCHAR(10) DEFAULT 's!'
-)
-""")
+    async def get_prefix(self, message):
+        if message.guild:
+            prefix = self.prefixes.get(message.guild.id)
+            if not prefix:
+                self.cursor.execute("SELECT prefix FROM prefixes WHERE guild_id = ?", (message.guild.id,))
+                result = self.cursor.fetchone()
+                prefix = result[0] if result else DEFAULT_PREFIX
+                self.prefixes[message.guild.id] = prefix
+            return prefix
+        return DEFAULT_PREFIX
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS marriages (
-    user_id BIGINT,
-    partner_id BIGINT,
-    PRIMARY KEY (user_id, partner_id)
-)
-""")
+bot = MyBot()
 
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS marriage_limits (
-    user_id BIGINT PRIMARY KEY,
-    limit_count INT DEFAULT 10
-)
-""")
-conn.commit()
+# ─── Команда /prefix ────────────────────────────────
+@bot.tree.command(name="prefix", description="Изменить префикс команд")
+@app_commands.describe(new_prefix="Новый префикс")
+async def change_prefix(interaction: discord.Interaction, new_prefix: str):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("⛔ Только администратор может менять префикс.", ephemeral=True)
 
-# ========== PREFIX GETTER ==========
-async def get_prefix(bot, message):
-    if not message.guild:
-        return "s!"
-    cursor.execute("SELECT prefix FROM prefixes WHERE guild_id = %s", (message.guild.id,))
-    result = cursor.fetchone()
-    return result[0] if result else "s!"
+    bot.prefixes[interaction.guild.id] = new_prefix
+    bot.cursor.execute("REPLACE INTO prefixes (guild_id, prefix) VALUES (?, ?)", (interaction.guild.id, new_prefix))
+    bot.db.commit()
+    await interaction.response.send_message(f"✅ Префикс изменён на `{new_prefix}`")
 
-bot.command_prefix = get_prefix
+# ─── Команда help ──────────────────────────────────
+HELP_COMMANDS = {
+    "help": "Показать это сообщение",
+    "prefix": "Изменить префикс команд",
+    "marriage info": "💍 Информация про браки",
+    "marriage accept <user>": "💍 Принять предложение о браке",
+    "marriage decline <user>": "💍 Отклонить предложение о браке",
+    "marriage divorce <user>": "💍 Развестись с кем-то",
+    "marriage list": "💍 Просмотреть свои браки",
+    "marriage marry <member>": "💍 Отправить предложение о браке кому-то",
+    "marriage proposals [page]": "💍 Посмотреть предложения браков"
+}
 
-# =================== EVENTS ===================
-@bot.event
-async def on_ready():
-    print(f'Logged in as {bot.user}')
-    try:
-        synced = await tree.sync()
-        print(f'Synced {len(synced)} command(s)')
-    except Exception as e:
-        print(e)
-
-# =================== PREFIX COMMANDS ===================
-@bot.command(name='prefix')
-@commands.has_permissions(administrator=True)
-async def change_prefix(ctx, new_prefix: str):
-    cursor.execute("REPLACE INTO prefixes (guild_id, prefix) VALUES (%s, %s)", (ctx.guild.id, new_prefix))
-    conn.commit()
-    await ctx.send(f"Префикс изменён на `{new_prefix}`")
-
-@tree.command(name="prefix", description="Изменить префикс команд")
-@app_commands.describe(prefix="Новый префикс")
-@app_commands.checks.has_permissions(administrator=True)
-async def slash_prefix(interaction: discord.Interaction, prefix: str):
-    cursor.execute("REPLACE INTO prefixes (guild_id, prefix) VALUES (%s, %s)", (interaction.guild.id, prefix))
-    conn.commit()
-    await interaction.response.send_message(f"Префикс изменён на `{prefix}`")
-
-# =================== HELP ===================
-@bot.command(name="help")
-async def help_cmd(ctx):
-    prefix = await get_prefix(bot, ctx.message)
-    help_text = f"""📖 **Информация о боте**
-Префикс: `{prefix}`
-Сервер поддержки: https://discord.gg/g24dUqCxjt
-
-**Команды:**
-{prefix}help - Показать это сообщение
-{prefix}prefix <префикс> - Изменить префикс (только для админов)
-{prefix}ping - Проверка пинга
-{prefix}marriage marry <пользователь> - Предложить брак
-{prefix}marriage accept <пользователь> - Принять предложение
-{prefix}marriage decline <пользователь> - Отклонить
-{prefix}marriage divorce <пользователь> - Развод
-{prefix}marriage info - Информация о браках
-{prefix}marriage list - Мои партнёры
-{prefix}marriage proposals - Полученные предложения
-"""
-    await ctx.send(help_text)
-
-@tree.command(name="help", description="Показать справку по боту")
-async def slash_help(interaction: discord.Interaction):
-    prefix = await get_prefix(bot, interaction)
-    await interaction.response.send_message(f"""📖 **Информация о боте**
-Префикс: `{prefix}`
-Сервер поддержки: https://discord.gg/g24dUqCxjt
-
-**Слэш-команды:** `/ping`, `/prefix`, `/help`, `/marriage ...`
-**Префикс-команды:** `s!ping`, `s!prefix`, `s!marriage ...`
-""")
-
-# =================== PING ===================
-@bot.command(name='ping')
-async def ping(ctx):
-    await ctx.send(f'Пинг: {round(bot.latency * 1000)}мс')
-
-@tree.command(name="ping", description="Проверить пинг бота")
-async def slash_ping(interaction: discord.Interaction):
-    await interaction.response.send_message(f'Пинг: {round(bot.latency * 1000)}мс')
-
-# =================== MARRIAGE ===================
-marriage = app_commands.Group(name="marriage", description="Брачные команды")
-tree.add_command(marriage)
-
-@bot.group(name="marriage")
-async def marriage_group(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send("Используй подкоманды: info, marry, accept, decline, divorce, list, proposals")
-
-# marry
-@marriage.command(name="marry", description="💍 Отправьте предложение о браке кому-то")
-@app_commands.describe(member="Пользователь")
-async def marry(interaction: discord.Interaction, member: discord.Member):
-    if member.id == interaction.user.id:
-        return await interaction.response.send_message("Вы не можете жениться на себе", ephemeral=True)
-
-    cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = %s", (interaction.user.id,))
-    current = cursor.fetchone()[0]
-
-    cursor.execute("SELECT limit_count FROM marriage_limits WHERE user_id = %s", (interaction.user.id,))
-    limit = cursor.fetchone()
-    max_partners = limit[0] if limit else 10
-
-    if current >= max_partners:
-        return await interaction.response.send_message(f"Вы достигли лимита браков ({max_partners})", ephemeral=True)
-
-    cursor.execute("INSERT IGNORE INTO marriages (user_id, partner_id) VALUES (%s, %s)", (interaction.user.id, member.id))
-    conn.commit()
-    await interaction.response.send_message(f"{interaction.user.mention} предложил брак {member.mention} 💍")
-
-@marriage_group.command(name="marry")
-async def marry_cmd(ctx, member: discord.Member):
-    await marry.callback(ctx, member)
-
-# accept
-@marriage.command(name="accept", description="💍 Принять предложение о браке")
-@app_commands.describe(user="Пользователь")
-async def accept(interaction: discord.Interaction, user: discord.User):
-    cursor.execute("SELECT * FROM marriages WHERE user_id = %s AND partner_id = %s", (user.id, interaction.user.id))
-    if cursor.fetchone():
-        cursor.execute("INSERT IGNORE INTO marriages (user_id, partner_id) VALUES (%s, %s)", (interaction.user.id, user.id))
-        conn.commit()
-        await interaction.response.send_message(f"{interaction.user.mention} принял брак с {user.mention}")
+async def send_help(ctx_or_interaction):
+    if isinstance(ctx_or_interaction, commands.Context):
+        prefix = await bot.get_prefix(ctx_or_interaction.message)
     else:
-        await interaction.response.send_message("Нет предложения от этого пользователя", ephemeral=True)
+        prefix = bot.prefixes.get(ctx_or_interaction.guild.id, DEFAULT_PREFIX)
 
-@marriage_group.command(name="accept")
-async def accept_cmd(ctx, user: discord.User):
-    await accept.callback(ctx, user)
+    embed = discord.Embed(title="🤖 Помощь по командам", color=0x5865F2)
+    embed.add_field(name="Префикс", value=f"`{prefix}`", inline=False)
+    embed.add_field(name="Сервер поддержки", value=SUPPORT_SERVER, inline=False)
+    commands_text = "\n".join(f"`{prefix}{cmd}` - {desc}" for cmd, desc in HELP_COMMANDS.items())
+    embed.add_field(name="Доступные команды", value=commands_text, inline=False)
+    embed.set_footer(text="Спасибо, что используете нашего бота 💙")
 
-# decline
-@marriage.command(name="decline", description="💍 Отклонить предложение о браке")
-@app_commands.describe(user="Пользователь")
-async def decline(interaction: discord.Interaction, user: discord.User):
-    cursor.execute("DELETE FROM marriages WHERE user_id = %s AND partner_id = %s", (user.id, interaction.user.id))
-    conn.commit()
-    await interaction.response.send_message(f"{interaction.user.mention} отклонил предложение от {user.mention}")
+    if isinstance(ctx_or_interaction, commands.Context):
+        await ctx_or_interaction.send(embed=embed)
+    else:
+        await ctx_or_interaction.response.send_message(embed=embed)
 
-@marriage_group.command(name="decline")
-async def decline_cmd(ctx, user: discord.User):
-    await decline.callback(ctx, user)
+@bot.command(name="help")
+async def help_command(ctx):
+    await send_help(ctx)
 
-# divorce
-@marriage.command(name="divorce", description="💍 Развестись с кем-то")
-@app_commands.describe(user="Пользователь")
-async def divorce(interaction: discord.Interaction, user: discord.User):
-    cursor.execute("DELETE FROM marriages WHERE (user_id = %s AND partner_id = %s) OR (user_id = %s AND partner_id = %s)", (interaction.user.id, user.id, user.id, interaction.user.id))
-    conn.commit()
-    await interaction.response.send_message(f"{interaction.user.mention} развёлся с {user.mention}")
+@bot.tree.command(name="help", description="Показать помощь по командам")
+async def help_slash(interaction: discord.Interaction):
+    await send_help(interaction)
 
-@marriage_group.command(name="divorce")
-async def divorce_cmd(ctx, user: discord.User):
-    await divorce.callback(ctx, user)
+# ─── /marriage info ────────────────────────────────
+@bot.tree.command(name="marriage_info", description="Показать список ваших браков")
+async def marriage_info(interaction: discord.Interaction):
+    bot.cursor.execute("SELECT partner_id, timestamp FROM marriages WHERE user_id = ?", (interaction.user.id,))
+    marriages = bot.cursor.fetchall()
 
-# list
-@marriage.command(name="list", description="💍 Просмотреть свои браки")
-async def list_marriages(interaction: discord.Interaction):
-    cursor.execute("SELECT partner_id FROM marriages WHERE user_id = %s", (interaction.user.id,))
-    partners = cursor.fetchall()
-    if not partners:
-        await interaction.response.send_message("У вас пока нет партнёров.")
-        return
-    mentions = [f"<@{p[0]}>" for p in partners]
-    await interaction.response.send_message("Ваши партнёры: " + ", ".join(mentions))
+    if not marriages:
+        return await interaction.response.send_message("💔 У вас нет браков.")
 
-@marriage_group.command(name="list")
-async def list_cmd(ctx):
-    await list_marriages.callback(ctx)
+    embed = discord.Embed(title="💍 Ваши браки", color=0xF47FFF)
+    for partner_id, timestamp in marriages:
+        partner = interaction.guild.get_member(partner_id)
+        name = partner.display_name if partner else f"Unknown ({partner_id})"
+        dt = datetime.fromisoformat(timestamp)
+        embed.add_field(name=name, value=f"В браке с <t:{int(dt.timestamp())}:R>", inline=False)
 
-# proposals
-@marriage.command(name="proposals", description="💍 Посмотреть свои предложения")
-@app_commands.describe(page="Страница")
-async def proposals(interaction: discord.Interaction, page: int = 1):
-    cursor.execute("SELECT user_id FROM marriages WHERE partner_id = %s", (interaction.user.id,))
-    proposals = cursor.fetchall()
-    if not proposals:
-        await interaction.response.send_message("У вас нет предложений.")
-        return
-    mentions = [f"<@{p[0]}>" for p in proposals]
-    await interaction.response.send_message("Предложения: " + ", ".join(mentions))
+    await interaction.response.send_message(embed=embed)
 
-@marriage_group.command(name="proposals")
-async def proposals_cmd(ctx, page: int = 1):
-    await proposals.callback(ctx, page)
+@bot.command(name="marriage_info")
+async def marriage_info_cmd(ctx):
+    class DummyInteraction:
+        def __init__(self, user, guild):
+            self.user = user
+            self.guild = guild
+        async def response(self):
+            pass
+    dummy = DummyInteraction(ctx.author, ctx.guild)
+    dummy.response = ctx
+    await marriage_info(dummy)
 
-# =================== RUN ===================
-bot.run(TOKEN)
+# ─── Команда marry ─────────────────────────────────
+@bot.tree.command(name="marriage_marry", description="Предложить пользователю вступить в брак")
+@app_commands.describe(member="Пользователь")
+async def marriage_marry(interaction: discord.Interaction, member: discord.Member):
+    if member.id == interaction.user.id:
+        return await interaction.response.send_message("❌ Вы не можете жениться на себе.", ephemeral=True)
+
+    bot.cursor.execute("SELECT limit FROM marriage_limits WHERE user_id = ?", (interaction.user.id,))
+    result = bot.cursor.fetchone()
+    limit = result[0] if result else DEFAULT_MARRIAGE_LIMIT
+
+    bot.cursor.execute("SELECT COUNT(*) FROM marriages WHERE user_id = ?", (interaction.user.id,))
+    count = bot.cursor.fetchone()[0]
+    if count >= limit:
+        return await interaction.response.send_message(f"❌ У вас уже максимальное количество партнёров ({limit}).", ephemeral=True)
+
+    bot.cursor.execute("SELECT 1 FROM marriage_proposals WHERE proposer_id = ? AND target_id = ?", (interaction.user.id, member.id))
+    if bot.cursor.fetchone():
+        return await interaction.response.send_message("❗ Вы уже отправляли предложение этому пользователю.", ephemeral=True)
+
+    now = datetime.utcnow().isoformat()
+    bot.cursor.execute("INSERT INTO marriage_proposals (proposer_id, target_id, timestamp) VALUES (?, ?, ?)",
+                       (interaction.user.id, member.id, now))
+    bot.db.commit()
+
+    embed = discord.Embed(title="💍 Предложение руки и сердца!", color=0xF47FFF)
+    embed.add_field(name="Кто предлагает", value=interaction.user.mention, inline=True)
+    embed.add_field(name="Кому", value=member.mention, inline=True)
+    embed.set_footer(text="Чтобы подтвердить, используйте команду /marriage_accept")
+
+    await interaction.response.send_message(embed=embed)
+
+bot.run(os.getenv("DISCORD_TOKEN"))
