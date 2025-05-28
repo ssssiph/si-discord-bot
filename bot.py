@@ -68,17 +68,17 @@ async def changeprefix(interaction: discord.Interaction, new_prefix: str):
         return await interaction.response.send_message("⛔ Только администратор может менять префикс.", ephemeral=True)
     await interaction.response.send_message(f"❌ Префикс менять нельзя, он всегда `{DEFAULT_PREFIX}`.", ephemeral=True)
 
-HELP_COMMANDS = {
-    "help": "Показать это сообщение",
-    "prefix": "Изменить префикс команд",
-    "marriage info": "💍 Информация про брак",
-    "marriage accept <user>": "💍 Принять предложение о браке",
-    "marriage decline <user>": "💍 Отклонить предложение о браке",
-    "marriage divorce <user>": "💍 Развестись с кем-то",
-    "marriage list": "💍 Просмотреть свои браки",
-    "marriage marry <member>": "💍 Отправить предложение о браке кому-то",
-    "marriage proposals [page]": "💍 Посмотреть предложения браков"
-}
+# HELP_COMMANDS = {
+#     "help": "Показать это сообщение",
+#     "prefix": "Изменить префикс команд",
+#     "marriage info": "💍 Информация про брак",
+#     "marriage accept <user>": "💍 Принять предложение о браке",
+#     "marriage decline <user>": "💍 Отклонить предложение о браке",
+#     "marriage divorce <user>": "💍 Развестись с кем-то",
+#     "marriage list": "💍 Просмотреть свои браки",
+#     "marriage marry <member>": "💍 Отправить предложение о браке кому-то",
+#     "marriage proposals [page]": "💍 Посмотреть предложения браков"
+# }
 
 async def send_help(ctx_or_interaction):
     prefix = DEFAULT_PREFIX
@@ -91,7 +91,7 @@ async def send_help(ctx_or_interaction):
             f"{prefix}prefix": "Изменить префикс команд"
         },
         "💰 Экономика": {
-            "Скоро": "Экономика скоро будет добавлена. (мне лень делать)"
+            "Скоро": "Финансовые команды скоро появятся!"
         },
         "🎭 Развлечения": {
             f"{prefix}marriage info": "💍 Информация про брак",
@@ -110,10 +110,10 @@ async def send_help(ctx_or_interaction):
 
     embed.set_footer(text="Спасибо, что используете нашего бота 💙")
 
-    if isinstance(ctx_or_interaction, commands.Context):
-        await ctx_or_interaction.send(embed=embed)
-    else:
+    if isinstance(ctx_or_interaction, discord.Interaction):
         await ctx_or_interaction.response.send_message(embed=embed)
+    else:
+        await ctx_or_interaction.send(embed=embed)
 
 @bot.command(name="help")
 async def helpcmd(ctx):
