@@ -12,7 +12,7 @@ intents.members = True
 
 class MyBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix="s!", intents=intents)
+        super().__init__(command_prefix=self.get_prefix, intents=intents, help_command=None)
     
     async def setup_hook(self):
         await self.load_extension("commands.core")
