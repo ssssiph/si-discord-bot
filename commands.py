@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from db.get_prefix import get_prefix_db as get_prefix
-from db.set_prefix import set_prefix
+from db.set_prefix import set_prefix_db as set_prefix
 
 async def ping(ctx):
     latency = round(ctx.bot.latency * 1000)
