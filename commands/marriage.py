@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from db import execute_query
+from db.db import execute_query
 from datetime import datetime
 
 class Marriage(commands.GroupCog, name="marriage"):
