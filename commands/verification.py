@@ -19,19 +19,21 @@ class Verification(commands.Cog):
         )
 
     async def on_member_update(self, before, after):
-        """Обработчик смены ролей и ника после верификации"""
-        verified = execute_query("SELECT roblox_id, roblox_name, display_name, roblox_age, roblox_join_date FROM verifications WHERE discord_id = %s", 
-                                 (after.id,), fetch_one=True)
+        """Обработчик смены ролей, ника и отправки приветственного сообщения после верификации"""
+        verified = execute_query(
+            "SELECT roblox_id, roblox_name, display_name, roblox_age, roblox_join_date FROM verifications WHERE discord_id = %s", 
+            (after.id,), fetch_one=True
+        )
+        
         if verified:
             role_id = execute_query("SELECT role_id FROM verification_settings WHERE guild_id = %s", (after.guild.id,), fetch_one=True)
-            if role_id:
+            if role_id and role_id[0]:
                 role = after.guild.get_role(role_id[0])
                 if role and role not in after.roles:
                     await after.add_roles(role)
 
-            # Меняем ник по указанному формату
             username_format = execute_query("SELECT username_format FROM verification_settings WHERE guild_id = %s", (after.guild.id,), fetch_one=True)
-            if username_format:
+            if username_format and username_format[0]:
                 new_nickname = username_format[0].replace("{roblox-name}", verified[1]) \
                                                  .replace("{display-name}", verified[2]) \
                                                  .replace("{smart-name}", f"{verified[2]} (@{verified[1]})") \
@@ -40,8 +42,9 @@ class Verification(commands.Cog):
                                                  .replace("{roblox-join-date}", verified[4])
                 await after.edit(nick=new_nickname)
 
-            welcome_message = f"🎉 **Добро пожаловать в {after.guild.name}, {new_nickname}!**"
-            await after.guild.system_channel.send(welcome_message)
+            if after.guild.system_channel:
+                welcome_message = f"🎉 **Добро пожаловать в {after.guild.name}, {new_nickname}!**"
+                await after.guild.system_channel.send(welcome_message)
 
 async def setup(bot):
     await bot.add_cog(Verification(bot))
