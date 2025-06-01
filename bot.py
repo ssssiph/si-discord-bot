@@ -35,7 +35,7 @@ class MyBot(commands.Bot):
             print("✅ verification.py загружен!")
 
             print("📜 Синхронизирую слэш-команды...")
-            await bot.tree.sync()
+            await self.tree.sync()
             print("✅ Слэш-команды синхронизированы!")
 
         except Exception as e:
