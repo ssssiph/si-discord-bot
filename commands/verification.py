@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 import requests
-from db import execute_query
+from db.db import execute_query
 
 VERIFY_TEXT_URL = "https://users.roblox.com/v1/users/"
 
