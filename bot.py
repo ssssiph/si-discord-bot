@@ -15,12 +15,12 @@ class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.get_prefix, intents=intents, help_command=None)
 
-    async def get_prefix(self, bot, message):
+    def get_prefix(self, bot, message):
         """Получение префикса из базы"""
-        return get_prefix(message.guild.id) if message.guild else "!"
+        return get_prefix(message.guild.id) if message.guild else "s!"
 
     async def setup_hook(self):
-        """Загружаем команды, проверяем ошибки"""
+        """Загружаем команды, регистрируем слэш-команды"""
         try:
             print("🟡 Загружаю core.py...")
             await self.load_extension("commands.core")
@@ -34,8 +34,13 @@ class MyBot(commands.Bot):
             await self.load_extension("commands.verification")
             print("✅ verification.py загружен!")
 
-            print("📜 Синхронизирую слэш-команды...")
-            await self.tree.sync()
+            print("📜 Регистрирую слэш-команды...")
+            bot.tree.add_command(bot.get_command("setup"))
+            bot.tree.add_command(bot.get_command("help"))
+            bot.tree.add_command(bot.get_command("ping"))
+            bot.tree.add_command(bot.get_command("sync"))
+            
+            await bot.tree.sync()
             print("✅ Слэш-команды синхронизированы!")
 
         except Exception as e:
