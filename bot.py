@@ -20,12 +20,22 @@ class MyBot(commands.Bot):
         return get_prefix(message.guild.id) if message.guild else "!"
 
     async def setup_hook(self):
-        print("🟡 Загружаю core.py...")
-        await self.load_extension("commands.core")
-        print("🟡 Загружаю marriage.py...")
-        await self.load_extension("commands.marriage")
-        print("🟡 Загружаю verification.py...")
-        await self.load_extension("commands.verification")
+        """Загружаем команды, проверяем ошибки"""
+        try:
+            print("🟡 Загружаю core.py...")
+            await self.load_extension("commands.core")
+            print("✅ core.py загружен!")
+
+            print("🟡 Загружаю marriage.py...")
+            await self.load_extension("commands.marriage")
+            print("✅ marriage.py загружен!")
+
+            print("🟡 Загружаю verification.py...")
+            await self.load_extension("commands.verification")
+            print("✅ verification.py загружен!")
+
+        except Exception as e:
+            print(f"❌ Ошибка при загрузке расширений: {e}")
 
 bot = MyBot()
 
@@ -33,5 +43,9 @@ bot = MyBot()
 async def on_ready():
     print(f'✅ Бот {bot.user} запущен!')
     await bot.tree.sync()
+
+    print("📜 Зарегистрированные команды:")
+    for command in bot.commands:
+        print(f"- {command.name}")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
