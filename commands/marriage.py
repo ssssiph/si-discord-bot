@@ -23,7 +23,7 @@ class Marriage(commands.GroupCog, name="marriage"):
                                   (interaction.user.id,), fetch_all=True)
         if not marriages:
             return await interaction.response.send_message("💔 У вас нет браков.")
-        
+
         embed = discord.Embed(title="💍 Ваши браки", color=0xF47FFF)
         for partner_id, timestamp in marriages:
             partner = interaction.guild.get_member(partner_id)
@@ -41,7 +41,7 @@ class Marriage(commands.GroupCog, name="marriage"):
                                        (interaction.user.id,), fetch_one=True)
         marriage_limit = marriage_limit[0] if marriage_limit else 1
         count = execute_query("SELECT COUNT(*) FROM marriages WHERE user_id = %s", (interaction.user.id,), fetch_one=True)[0]
-        
+
         if count >= marriage_limit:
             return await interaction.response.send_message("❌ Достигнут лимит браков.", ephemeral=True)
 
@@ -50,7 +50,7 @@ class Marriage(commands.GroupCog, name="marriage"):
         embed = discord.Embed(title="💍 Предложение!", color=0xF47FFF)
         embed.add_field(name="Кто предлагает", value=interaction.user.mention)
         embed.add_field(name="Кому", value=member.mention)
-        embed.set_footer(text="Используйте /marriage accept чтобы принять.")
+        embed.set_footer(text="Используйте /marriage accept, чтобы принять.")
         await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="accept", description="Принять предложение о браке")
@@ -91,7 +91,10 @@ class Marriage(commands.GroupCog, name="marriage"):
 
         execute_query("DELETE FROM marriages WHERE user_id = %s AND partner_id = %s", (interaction.user.id, user.id))
         execute_query("DELETE FROM marriages WHERE user_id = %s AND partner_id = %s", (user.id, interaction.user.id))
-        await interaction.response.send_message(f"💔 Вы развелись с {user.mention}.")
+
+        embed = discord.Embed(title="💔 Развод оформлен", description=f"Вы больше не состоите в браке с {user.mention}.", color=0xFF0000)
+        embed.set_footer(text="Вы всегда можете начать новую жизнь! 💡")
+        await interaction.response.send_message(embed=embed)
 
     @app_commands.command(name="proposals", description="Посмотреть предложения о браке")
     async def marriage_proposals(self, interaction: discord.Interaction, page: int = 1):
