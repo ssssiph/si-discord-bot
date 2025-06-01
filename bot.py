@@ -15,7 +15,7 @@ class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.get_prefix, intents=intents, help_command=None)
 
-    async def get_prefix(self, bot, message):
+    async def get_prefix(self, message):
         """Получение префикса из базы"""
         return get_prefix(message.guild.id) if message.guild else "s!"
 
