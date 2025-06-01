@@ -57,7 +57,7 @@ def init_db():
         )
     """)
 
-    # Таблица верификации Roblox
+    # Таблица верификации Roblox (исправлена ошибка)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verifications (
             discord_id BIGINT PRIMARY KEY,
@@ -66,11 +66,11 @@ def init_db():
             display_name VARCHAR(255) NOT NULL,
             roblox_age INT NOT NULL,
             roblox_join_date DATE NOT NULL,
-            status TEXT DEFAULT 'pending'
+            status TEXT NOT NULL
         )
     """)
 
-    # Таблица verification_settings
+    # ✅ Новая таблица verification_settings
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verification_settings (
             guild_id BIGINT PRIMARY KEY,
