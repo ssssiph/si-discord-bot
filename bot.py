@@ -15,12 +15,12 @@ class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=self.get_prefix, intents=intents, help_command=None)
 
-    async def get_prefix(self, bot, message):
+    async def get_prefix(self, message):
         """Получение префикса из базы"""
         return get_prefix(message.guild.id) if message.guild else "s!"
 
     async def setup_hook(self):
-        """Загружаем расширения и синхронизируем команды"""
+        """Загружаем расширения и синхронизируем слэш-команды"""
         try:
             print("🟡 Загружаю core.py...")
             await self.load_extension("commands.core")
@@ -29,6 +29,10 @@ class MyBot(commands.Bot):
             print("🟡 Загружаю marriage.py...")
             await self.load_extension("commands.marriage")
             print("✅ marriage.py загружен!")
+
+            print("🟡 Загружаю verification.py...")
+            await self.load_extension("commands.verification")
+            print("✅ verification.py загружен!")
 
             print("📜 Синхронизирую слэш-команды...")
             await self.tree.sync()
