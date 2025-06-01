@@ -17,23 +17,26 @@ class Core(commands.Cog):
         """Проверка задержки бота (Слэш-команда)"""
         await interaction.response.send_message(f'🏓 Pong! `{round(interaction.client.latency * 1000)} ms`')
 
-    @commands.command(name="sync")
-    async def sync_text(self, ctx):
-        """Синхронизация слэш-команд (Текстовая команда)"""
-        if ctx.author.guild_permissions.administrator:
-            await ctx.bot.tree.sync()
-            await ctx.send("✅ Все слэш-команды синхронизированы!")
-        else:
-            await ctx.send("❌ Только админ может синхронизировать команды.")
+    @commands.command(name="prefix")
+    async def prefix_text(self, ctx, new_prefix: str = None):
+        """Изменение префикса команд (Текстовая команда)"""
+        if not ctx.author.guild_permissions.administrator:
+            return await ctx.send("❌ Только админ может менять префикс.")
 
-    @app_commands.command(name="sync", description="Синхронизация слэш-команд")
-    async def sync_slash(self, interaction: discord.Interaction):
-        """Синхронизация слэш-команд (Слэш-команда)"""
-        if interaction.user.guild_permissions.administrator:
-            await interaction.client.tree.sync()
-            await interaction.response.send_message("✅ Все слэш-команды синхронизированы!")
+        if new_prefix:
+            set_prefix(ctx.guild.id, new_prefix)
+            await ctx.send(f"✅ Префикс изменён на `{new_prefix}`")
         else:
-            await interaction.response.send_message("❌ Только админ может синхронизировать команды!", ephemeral=True)
+            await ctx.send(f"🔧 Текущий префикс: `{get_prefix(ctx.guild.id)}`")
+
+    @app_commands.command(name="prefix", description="Изменить префикс команд")
+    async def prefix_slash(self, interaction: discord.Interaction, new_prefix: str):
+        """Изменение префикса команд (Слэш-команда)"""
+        if not interaction.user.guild_permissions.administrator:
+            return await interaction.response.send_message("❌ Только админ может менять префикс.", ephemeral=True)
+
+        set_prefix(interaction.guild.id, new_prefix)
+        await interaction.response.send_message(f"✅ Префикс изменён на `{new_prefix}`")
 
     @app_commands.command(name="help", description="Помощь по командам")
     async def help_slash(self, interaction: discord.Interaction):
