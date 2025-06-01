@@ -6,7 +6,7 @@ from db.db import execute_query
 
 VERIFY_TEXT_URL = "https://users.roblox.com/v1/users/"
 
-class Verification(commands.GroupCog, name="verification"):
+class Verification(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
