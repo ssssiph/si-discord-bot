@@ -34,6 +34,10 @@ class MyBot(commands.Bot):
             await self.load_extension("commands.verification")
             print("✅ verification.py загружен!")
 
+            print("📜 Синхронизирую слэш-команды...")
+            await bot.tree.sync()
+            print("✅ Слэш-команды синхронизированы!")
+
         except Exception as e:
             print(f"❌ Ошибка при загрузке расширений: {e}")
 
@@ -42,10 +46,5 @@ bot = MyBot()
 @bot.event
 async def on_ready():
     print(f'✅ Бот {bot.user} запущен!')
-    await bot.tree.sync()
-
-    print("📜 Зарегистрированные команды:")
-    for command in bot.commands:
-        print(f"- {command.name}")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
