@@ -34,19 +34,24 @@ class Marriage(commands.GroupCog, name="marriage"):
 
     @app_commands.command(name="marry", description="Предложить пользователю вступить в брак")
     async def marriage_marry(self, interaction: discord.Interaction, member: discord.Member):
-        if member.id == interaction.user.id:
-            return await interaction.response.send_message("❌ Нельзя жениться на себе.", ephemeral=True)
+        """Отправить предложение о браке"""
+        limit_count = execute_query("SELECT limit_count FROM marriage_limits WHERE user_id = %s", 
+                                    (interaction.user.id,), fetch_one=True)
 
-        marriage_limit = execute_query("SELECT marriage_limit FROM marriage_limits WHERE user_id = %s", 
-                                       (interaction.user.id,), fetch_one=True)
-        marriage_limit = marriage_limit[0] if marriage_limit else 1
-        count = execute_query("SELECT COUNT(*) FROM marriages WHERE user_id = %s", (interaction.user.id,), fetch_one=True)[0]
+        if limit_count is None:
+            execute_query("INSERT INTO marriage_limits (user_id, limit_count) VALUES (%s, %s)", 
+                          (interaction.user.id, 1))
+            limit_count = (1,)
 
-        if count >= marriage_limit:
+        count = execute_query("SELECT COUNT(*) FROM marriages WHERE user_id = %s", 
+                              (interaction.user.id,), fetch_one=True)[0]
+
+        if count >= limit_count[0]:
             return await interaction.response.send_message("❌ Достигнут лимит браков.", ephemeral=True)
 
         execute_query("INSERT INTO marriage_proposals (proposer_id, target_id, timestamp) VALUES (%s, %s, %s)",
                       (interaction.user.id, member.id, datetime.utcnow().isoformat()))
+
         embed = discord.Embed(title="💍 Предложение!", color=0xF47FFF)
         embed.add_field(name="Кто предлагает", value=interaction.user.mention)
         embed.add_field(name="Кому", value=member.mention)
