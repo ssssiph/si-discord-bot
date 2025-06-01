@@ -11,6 +11,15 @@ class Core(commands.Cog):
         """Проверка задержки бота"""
         await ctx.send(f'🏓 Pong! `{round(self.bot.latency * 1000)} ms`')
 
+    @commands.command(name="sync")
+    async def sync(self, ctx):
+        """Синхронизация слэш-команд"""
+        if ctx.author.guild_permissions.administrator:
+            await ctx.bot.tree.sync()
+            await ctx.send("✅ Все слэш-команды синхронизированы!")
+        else:
+            await ctx.send("❌ Только админ может синхронизировать команды.")
+
     @commands.command(name="prefix")
     async def prefix(self, ctx, new_prefix: str = None):
         """Управление префиксом команд"""
@@ -46,7 +55,11 @@ class Core(commands.Cog):
         """Список команд"""
         embed = discord.Embed(title="🤖 Помощь по командам", color=0x5865F2)
 
-        embed.add_field(name="🛡️ Модерация", value="`/prefix` - Изменить префикс команд", inline=False)
+        embed.add_field(name="🛡️ Модерация", value=(
+            "`!prefix` - Изменить префикс команд\n"
+            "`!sync` - Синхронизировать слэш-команды"
+        ), inline=False)
+        
         embed.add_field(name="💰 Экономика", value="Скоро!", inline=False)
 
         embed.add_field(name="💍 Брак", value=(
@@ -61,7 +74,7 @@ class Core(commands.Cog):
 
         embed.add_field(name="🔍 Верификация", value=(
             "`/verify` - Получить ссылку для верификации\n"
-            "`/setup [роль] [формат ника]` - Настроить параметры"
+            "`!setup [роль] [формат ника]` - Настроить параметры"
         ), inline=False)
 
         embed.set_footer(text="Спасибо, что используете нашего бота 💙")
