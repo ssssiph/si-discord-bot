@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from db import get_prefix, set_prefix
+from db.db import execute_query, get_prefix, set_prefix
 
 class Core(commands.Cog):
     def __init__(self, bot):
@@ -23,6 +23,24 @@ class Core(commands.Cog):
         else:
             await ctx.send(f"🔧 Текущий префикс: `{get_prefix(ctx.guild.id)}`")
 
+    @commands.command(name="setup")
+    async def setup(self, ctx, role: discord.Role = None, username_format: str = None):
+        """Настроить параметры верификации"""
+        if not ctx.author.guild_permissions.administrator:
+            return await ctx.send("❌ Только админ может выполнять настройку.")
+        
+        execute_query(
+            "INSERT INTO verification_settings (guild_id, role_id, username_format) VALUES (%s, %s, %s)"
+            " ON DUPLICATE KEY UPDATE role_id=VALUES(role_id), username_format=VALUES(username_format)",
+            (ctx.guild.id, role.id if role else None, username_format)
+        )
+        response = "✅ Настроено!"
+        if role:
+            response += f" Роль `{role.name}` будет выдаваться."
+        if username_format:
+            response += f" Никнейм будет по формату `{username_format}`."
+        await ctx.send(response)
+
     @commands.command(name="help")
     async def help(self, ctx):
         """Список команд"""
@@ -41,7 +59,10 @@ class Core(commands.Cog):
             "`/marriage proposals [page]` - Посмотреть предложения"
         ), inline=False)
 
-        embed.add_field(name="🔍 Верификация", value="`/verify <username>` - Верификация через Roblox", inline=False)
+        embed.add_field(name="🔍 Верификация", value=(
+            "`/verify` - Получить ссылку для верификации\n"
+            "`/setup [роль] [формат ника]` - Настроить параметры"
+        ), inline=False)
 
         embed.set_footer(text="Спасибо, что используете нашего бота 💙")
         await ctx.send(embed=embed)
