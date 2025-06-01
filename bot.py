@@ -13,7 +13,11 @@ intents.members = True
 
 class MyBot(commands.Bot):
     def __init__(self):
-        super().__init__(command_prefix=get_prefix, intents=intents, help_command=None)
+        super().__init__(command_prefix=self.get_prefix, intents=intents, help_command=None)
+
+    async def get_prefix(self, bot, message):
+        """Получение префикса из базы"""
+        return get_prefix(message.guild.id) if message.guild else "s!"
 
     async def setup_hook(self):
         """Загружаем расширения и синхронизируем слэш-команды"""
