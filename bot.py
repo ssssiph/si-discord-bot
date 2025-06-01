@@ -20,9 +20,11 @@ class MyBot(commands.Bot):
         return get_prefix(message.guild.id) if message.guild else "!"
 
     async def setup_hook(self):
-        """Загружаем команды"""
+        print("🟡 Загружаю core.py...")
         await self.load_extension("commands.core")
+        print("🟡 Загружаю marriage.py...")
         await self.load_extension("commands.marriage")
+        print("🟡 Загружаю verification.py...")
         await self.load_extension("commands.verification")
 
 bot = MyBot()
