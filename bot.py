@@ -34,6 +34,11 @@ class MyBot(commands.Bot):
             await self.load_extension("commands.verification")
             print("✅ verification.py загружен!")
 
+            print("🟡 Загружаю commands.py...")
+            from commands import setup_commands
+            setup_commands(self)
+            print("✅ commands.py загружен!")
+
             print("📜 Синхронизирую слэш-команды...")
             await self.tree.sync()
             print("✅ Слэш-команды синхронизированы!")
