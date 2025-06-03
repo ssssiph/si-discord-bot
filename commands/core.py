@@ -5,13 +5,22 @@ from db.db import execute_query
 
 def setup(bot):
     print("Добавляю команды core...")
-    bot.tree.add_command(SetupCommand(bot))
-    bot.tree.add_command(VerifyCommand(bot))
+    bot.tree.add_command(app_commands.Command(
+        name="setup",
+        description="Настроить верификацию на сервере",
+        callback=setup_callback,
+        default_permissions=discord.Permissions(administrator=True),
+        guilds=[discord.Object(id=guild_id) for guild_id in bot.guilds]  # Ограничение по гильдиям (опционально)
+    ))
+    bot.tree.add_command(app_commands.Command(
+        name="verify",
+        description="Начать верификацию",
+        callback=verify_callback,
+        guilds=[discord.Object(id=guild_id) for guild_id in bot.guilds]  # Ограничение по гильдиям (опционально)
+    ))
     print("Команды core добавлены!")
 
-@app_commands.command(name="setup", description="Настроить верификацию на сервере")
-@app_commands.checks.has_permissions(administrator=True)
-async def SetupCommand(interaction: discord.Interaction, role_id: str, username_format: str):
+async def setup_callback(interaction: discord.Interaction, role_id: str, username_format: str):
     guild_id = interaction.guild_id
     try:
         execute_query(
@@ -22,8 +31,7 @@ async def SetupCommand(interaction: discord.Interaction, role_id: str, username_
     except Exception as e:
         await interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
 
-@app_commands.command(name="verify", description="Начать верификацию")
-async def VerifyCommand(interaction: discord.Interaction):
+async def verify_callback(interaction: discord.Interaction):
     await interaction.response.send_message(
         "Перейдите по ссылке для верификации: https://siph-industry.com/verification",
         ephemeral=True
