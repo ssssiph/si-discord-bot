@@ -22,7 +22,13 @@ class MyBot(commands.Bot):
 
     async def get_prefix(self, message):
         """Получение префикса из базы"""
-        return get_prefix(message.guild.id) if message.guild else "s!"
+        try:
+            prefix = get_prefix(message.guild.id) if message.guild else "s!"
+            print(f"Префикс для сервера {message.guild.id if message.guild else 'DM'}: {prefix}")
+            return prefix
+        except Exception as e:
+            print(f"Ошибка получения префикса: {e}")
+            return "s!"
 
     async def setup_hook(self):
         """Загружаем расширения"""
@@ -36,21 +42,21 @@ class MyBot(commands.Bot):
 
     async def on_command_error(self, ctx, error):
         """Обработка ошибок текстовых команд"""
+        print(f"Ошибка команды: {error}")
         if isinstance(error, commands.MissingPermissions):
             await ctx.reply("❌ У вас нет прав администратора!")
         elif isinstance(error, commands.CommandNotFound):
             pass
         else:
-            print(f"Ошибка команды: {error}")
             await ctx.reply(f"❌ Произошла ошибка: {error}")
 
     async def on_slash_command_error(self, interaction, error):
         """Обработка ошибок слэш-команд"""
+        print(f"Ошибка слэш-команды: {error}")
         if not interaction.response.is_done():
             if isinstance(error, commands.MissingPermissions):
                 await interaction.response.send_message("❌ У вас нет прав администратора!", ephemeral=True)
             else:
-                print(f"Ошибка слэш-команды: {error}")
                 await interaction.response.send_message(f"❌ Произошла ошибка: {error}", ephemeral=True)
 
 bot = MyBot()
@@ -61,7 +67,7 @@ async def on_ready():
     try:
         print("📜 Синхронизирую слэш-команды...")
         synced = await bot.tree.sync()
-        print(f"✅ Синхронизировано {len(synced)} слэш-команд!")
+        print(f"✅ Синхронизировано {len(synced)} слэш-команд: {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Ошибка синхронизации: {e}")
 
