@@ -209,47 +209,4 @@ async def setup(bot):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     bot.tree.add_command(marriage_group)
-    print("Команды marriage добавлены!")
-
-#### 3.2. Добавление `/help` в `commands/core.py`
-Добавим команду `/help` в `commands/core.py`, которая будет показывать список всех доступных команд.
-
-##### Обновление `commands/core.py`
-
-<xaiArtifact artifact_id="8b565253-a806-4d33-842f-7b0559acda8e" artifact_version_id="a7e967ca-db8e-45a7-811a-4a53b63f467b" title="commands/core.py" contentType="text/x-python">
-import discord
-from discord import app_commands
-from discord.ext import commands
-
-async def setup(bot):
-    """Регистрация основных команд"""
-    print("Добавляю команды core...")
-
-    @bot.tree.command(name="help", description="Показать список доступных команд")
-    async def help_command(interaction: discord.Interaction):
-        """Показывает список доступных команд"""
-        embed = discord.Embed(title="📖 Список команд", color=0xCCB4E4)
-        embed.add_field(
-            name="Верификация",
-            value="`/verify` - Начать процесс верификации\n",
-            inline=False
-        )
-        embed.add_field(
-            name="Браки",
-            value="`/marriage info` - Информация про брак\n"
-                  "`/marriage list` - Просмотреть браки\n"
-                  "`/marriage marry <user>` - Сделать предложение\n"
-                  "`/marriage accept <user>` - Принять предложение\n"
-                  "`/marriage decline <user>` - Отклонить предложение\n"
-                  "`/marriage divorce <user>` - Развестись\n"
-                  "`/marriage proposals [page]` - Посмотреть предложения",
-            inline=False
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-    @bot.tree.command(name="verify", description="Начать процесс верификации")
-    async def verify_command(interaction: discord.Interaction):
-        """Перенаправляет на страницу верификации"""
-        await interaction.response.send_message("Перейдите для верификации: https://siph-industry.com/verification", ephemeral=True)
-
-    print("Команды core добавлены!")
+    print("Команды marriage успешно добавлены!")
