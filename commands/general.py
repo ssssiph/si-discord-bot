@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
-from set_prefix import set_prefix
-from get_prefix import get_prefix
+from db.set_prefix import set_prefix
+from db.get_prefix import get_prefix
 
 def setup(bot):
     """Регистрация текстовых команд"""
