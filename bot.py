@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from db.db import get_prefix
+from get_prefix import get_prefix
 
 load_dotenv()
 
@@ -45,11 +45,12 @@ class MyBot(commands.Bot):
 
     async def on_slash_command_error(self, interaction, error):
         """Обработка ошибок слэш-команд"""
-        if isinstance(error, commands.MissingPermissions):
-            await interaction.response.send_message("❌ У вас нет прав администратора!", ephemeral=True)
-        else:
-            print(f"Ошибка слэш-команды: {error}")
-            await interaction.response.send_message(f"❌ Произошла ошибка: {error}", ephemeral=True)
+        if not interaction.response.is_done():
+            if isinstance(error, commands.MissingPermissions):
+                await interaction.response.send_message("❌ У вас нет прав администратора!", ephemeral=True)
+            else:
+                print(f"Ошибка слэш-команды: {error}")
+                await interaction.response.send_message(f"❌ Произошла ошибка: {error}", ephemeral=True)
 
 bot = MyBot()
 
