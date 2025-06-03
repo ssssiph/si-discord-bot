@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
-from get_prefix import get_prefix
+from db.get_prefix import get_prefix
 
 load_dotenv()
 
