@@ -22,22 +22,9 @@ class MyBot(commands.Bot):
     async def setup_hook(self):
         """Загружаем расширения и синхронизируем слэш-команды"""
         try:
-            print("🟡 Загружаю core.py...")
-            await self.load_extension("commands.core")
-            print("✅ core.py загружен!")
-
-            print("🟡 Загружаю marriage.py...")
-            await self.load_extension("commands.marriage")
-            print("✅ marriage.py загружен!")
-
-            print("🟡 Загружаю verification.py...")
-            await self.load_extension("commands.verification")
-            print("✅ verification.py загружен!")
-
-            print("🟡 Загружаю commands.py...")
-            from commands import setup_commands
-            setup_commands(self)
-            print("✅ commands.py загружен!")
+            print("🟡 Загружаю commands...")
+            await self.load_extension("commands")
+            print("✅ commands загружен!")
 
             print("📜 Синхронизирую слэш-команды...")
             await self.tree.sync()
