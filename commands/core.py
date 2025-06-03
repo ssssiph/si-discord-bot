@@ -60,7 +60,7 @@ def setup(bot):
             else:
                 await interaction.response.send_message("❌ Вы не верифицированы!", ephemeral=True)
         except Exception as e:
-            await interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
+            interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
 
     @bot.tree.command(name="whois", description="Информация о верифицированном пользователе")
     async def whois_command(interaction: discord.Interaction, user: discord.User):
@@ -108,7 +108,7 @@ def setup(bot):
                 (nickname_format, guild_id)
             )
             await interaction.response.send_message(
-                f"✅ Формат никнейма установлен: `{nickname_format}`",
+                f"✅ Формат никнейма установлен: `{nickname_format}`!",
                 ephemeral=True
             )
         except Exception as e:
