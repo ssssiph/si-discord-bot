@@ -2,21 +2,37 @@ import discord
 from discord.ext import commands
 from db.db import get_prefix, set_prefix
 
-async def ping(ctx):
-    """Проверяет задержку бота"""
-    latency = round(ctx.bot.latency * 1000)
-    await ctx.reply(f"🏓 Pong! Latency: {latency}ms")
-
-async def change_prefix(ctx, new_prefix: str):
-    """Изменяет префикс для сервера"""
-    if not ctx.author.guild_permissions.administrator:
-        return await ctx.reply(f"❌ У вас нет прав администратора для этого.")
-    if len(new_prefix) > 0:
-        return await ctx.reply("Префикс слишком длинный! Максимум 10 символов.")
-    set_prefix(ctx.guild.id, new_prefix)
-    await ctx.reply(f"✅ Префикс изменён на: `{new_prefix}`")
-
 def setup(bot):
-    """Регистрация команд"""
-    bot.add_command(commands.Command(ping, name="ping", aliases=["пинг"]))
-    bot.add_command(commands.Command(change_prefix, name="prefix", aliases=["префикс"]))
+    """Регистрация текстовых команд"""
+
+    @bot.command(name="ping", aliases=["пинг"])
+    @commands.has_permissions(administrator=True)
+    async def ping(ctx):
+        """Проверяет задержку бота"""
+        latency = round(bot.latency * 1000)
+        await ctx.reply(f"🏓 Pong! Latency: {latency}ms")
+
+    @bot.command(name="prefix", aliases=["префикс"])
+    @commands.has_permissions(administrator=True)
+    async def prefix(ctx, new_prefix: str = None):
+        """Получает или изменяет префикс"""
+        if new_prefix is None:
+            current = get_prefix(ctx.guild.id)
+            await ctx.reply(f"🔧 Текущий префикс: `{current}`")
+        else:
+            if len(new_prefix) > 10:
+                await ctx.reply("❌ Префикс слишком длинный! Максимум 10 символов.")
+                return
+            set_prefix(ctx.guild.id, new_prefix)
+            await ctx.reply(f"✅ Префикс изменён на: `{new_prefix}`")
+
+    @bot.command(name="sync", aliases=["синк"])
+    @commands.has_permissions(administrator=True)
+    async def sync(ctx):
+        """Синхронизирует слэш-команды"""
+        await ctx.reply("📜 Синхронизирую слэш-команды...")
+        try:
+            await bot.tree.sync()
+            await ctx.reply("✅ Слэш-команды синхронизированы!")
+        except Exception as e:
+            await ctx.reply(f"❌ Ошибка синхронизации: {e}")
