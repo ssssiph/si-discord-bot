@@ -27,7 +27,7 @@ class Core(commands.Cog):
             ephemeral=True
         )
 
-def setup(bot):
+async def setup(bot):
     print("Добавляю команды core...")
-    bot.add_cog(Core(bot))
+    await bot.add_cog(Core(bot))
     print("Команды core добавлены!")
