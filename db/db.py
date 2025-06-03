@@ -85,17 +85,22 @@ def init_db():
 
 def execute_query(query, params=(), fetch_one=False, fetch_all=False):
     """Универсальное выполнение SQL-запросов"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute(query, params)
-    result = None
-    if fetch_one:
-        result = cursor.fetchone()
-    elif fetch_all:
-        result = cursor.fetchall()
-    conn.commit()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute(query, params)
+        result = None
+        if fetch_one:
+            result = cursor.fetchone()
+        elif fetch_all:
+            result = cursor.fetchall()
+        conn.commit()
+    except Exception as e:
+        print(f"Ошибка базы данных: {e}")
+        raise
+    finally:
+        cursor.close()
+        conn.close()
     return result
 
 def get_prefix(guild_id):
