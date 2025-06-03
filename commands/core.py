@@ -8,14 +8,19 @@ def setup(bot):
 
     @bot.tree.command(name="setup", description="Настройка верификации для сервера")
     @app_commands.checks.has_permissions(administrator=True)
-    async def setup_command(interaction: discord.Interaction, role_id: str, nickname_format: str = "{roblox-name}"):
+    async def setup_command(interaction: discord.Interaction, role_id: str, nickname_format: str = "{player-name}"):
         """Настраивает верификацию: роль и формат никнейма"""
         guild_id = interaction.guild_id
-        valid_formats = ["{roblox-name}", "{display-name}", "{roblox-id}", "{discord-name}"]
+        valid_formats = ["{smart-name}", "{display-name}", "{user-id}", "{account-age}", "{player-name}"]
         if not any(fmt in nickname_format for fmt in valid_formats):
             await interaction.response.send_message(
-                "❌ Неверный формат никнейма! Используйте: `{roblox-name}`, `{display-name}`, `{roblox-id}`, `{discord-name}`\n"
-                "Пример: `{roblox-name} | {discord-name}`",
+                "❌ Неверный формат никнейма! Используйте:\n"
+                "- `{smart-name}`: <дисплей ник> (@уникальный ник)\n"
+                "- `{display-name}`: <дисплей ник>\n"
+                "- `{user-id}`: <Roblox ID>\n"
+                "- `{account-age}`: <возраст аккаунта в днях>\n"
+                "- `{player-name}`: <уникальный ник>\n"
+                "Пример: `{player-name} | {account-age}`",
                 ephemeral=True
             )
             return
@@ -60,7 +65,7 @@ def setup(bot):
             else:
                 await interaction.response.send_message("❌ Вы не верифицированы!", ephemeral=True)
         except Exception as e:
-            interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
+            await interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
 
     @bot.tree.command(name="whois", description="Информация о верифицированном пользователе")
     async def whois_command(interaction: discord.Interaction, user: discord.User):
@@ -93,11 +98,16 @@ def setup(bot):
     async def setnickname_command(interaction: discord.Interaction, nickname_format: str):
         """Устанавливает формат никнейма для верифицированных пользователей"""
         guild_id = interaction.guild_id
-        valid_formats = ["{roblox-name}", "{display-name}", "{roblox-id}", "{discord-name}"]
+        valid_formats = ["{smart-name}", "{display-name}", "{user-id}", "{account-age}", "{player-name}"]
         if not any(fmt in nickname_format for fmt in valid_formats):
             await interaction.response.send_message(
-                "❌ Неверный формат никнейма! Используйте: `{roblox-name}`, `{display-name}`, `{roblox-id}`, `{discord-name}`\n"
-                "Пример: `{roblox-name} | {discord-name}`",
+                "❌ Неверный формат никнейма! Используйте:\n"
+                "- `{smart-name}`: <дисплей ник> (@уникальный ник)\n"
+                "- `{display-name}`: <дисплей ник>\n"
+                "- `{user-id}`: <Roblox ID>\n"
+                "- `{account-age}`: <возраст аккаунта в днях>\n"
+                "- `{player-name}`: <уникальный ник>\n"
+                "Пример: `{player-name} | {account-age}`",
                 ephemeral=True
             )
             return
@@ -108,7 +118,7 @@ def setup(bot):
                 (nickname_format, guild_id)
             )
             await interaction.response.send_message(
-                f"✅ Формат никнейма установлен: `{nickname_format}`!",
+                f"✅ Формат никнейма установлен: `{nickname_format}`",
                 ephemeral=True
             )
         except Exception as e:
