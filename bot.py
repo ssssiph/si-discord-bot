@@ -32,6 +32,7 @@ class MyBot(commands.Bot):
             print("✅ commands загружен!")
         except Exception as e:
             print(f"❌ Ошибка при загрузке расширений: {e}")
+            raise
 
     async def on_command_error(self, ctx, error):
         """Обработка ошибок текстовых команд"""
@@ -59,8 +60,8 @@ async def on_ready():
     print(f'✅ Бот {bot.user} запущен!')
     try:
         print("📜 Синхронизирую слэш-команды...")
-        await bot.tree.sync()
-        print("✅ Слэш-команды синхронизированы!")
+        synced = await bot.tree.sync()
+        print(f"✅ Синхронизировано {len(synced)} слэш-команд!")
     except Exception as e:
         print(f"❌ Ошибка синхронизации: {e}")
 
