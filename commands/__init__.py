@@ -13,5 +13,9 @@ from .core import setup as core_setup
 from .general import setup as general_setup
 
 def setup(bot):
-    core_setup(bot)
-    general_setup(bot)
+    try:
+        core_setup(bot)
+        general_setup(bot)
+    except Exception as e:
+        print(f"Ошибка в setup: {e}")
+        raise
