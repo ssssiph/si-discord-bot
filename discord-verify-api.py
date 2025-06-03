@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 app = Flask(__name__)
-CORS(app)  # Разрешить CORS
+CORS(app, resources={r"/api/*": {"origins": "https://siph-industry.com"}})  # Ограничиваем CORS
 load_dotenv()
 
 def get_db_connection():
