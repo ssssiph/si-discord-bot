@@ -1,33 +1,36 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from db.db import execute_query
-
-class Core(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    @app_commands.command(name="setup", description="Настроить верификацию на сервере")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def setup(self, interaction: discord.Interaction, role_id: str, username_format: str):
-        guild_id = interaction.guild_id
-        try:
-            execute_query(
-                "INSERT INTO verification_settings (guild_id, role_id, username_format) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE role_id = %s, username_format = %s",
-                (guild_id, role_id, username_format, role_id, username_format)
-            )
-            await interaction.response.send_message("✅ Настройки верификации сохранены!", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
-
-    @app_commands.command(name="verify", description="Начать верификацию")
-    async def verify(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "Перейдите по ссылке для верификации: https://siph-industry.com/verification",
-            ephemeral=True
-        )
 
 async def setup(bot):
+    """Регистрация основных команд"""
     print("Добавляю команды core...")
-    await bot.add_cog(Core(bot))
-    print("Команды core добавлены!")
+
+    @bot.tree.command(name="help", description="Показать список доступных команд")
+    async def help_command(interaction: discord.Interaction):
+        """Показывает список всех доступных команд"""
+        embed = discord.Embed(title="📖 Список команд", color=0xCCB4E4)
+        embed.add_field(
+            name="Верификация",
+            value="`/verify` - Начать процесс верификации\n",
+            inline=False
+        )
+        embed.add_field(
+            name="Браки",
+            value="`/marriage info` - Информация про брак\n"
+                  "`/marriage list` - Просмотреть браки\n"
+                  "`/marriage marry <user>` - Сделать предложение\n"
+                  "`/marriage accept <user>` - Принять предложение\n"
+                  "`/marriage decline <user>` - Отклонить предложение\n"
+                  "`/marriage divorce <user>` - Развестись\n"
+                  "`/marriage proposals [page]` - Посмотреть предложения",
+            inline=False
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @bot.tree.command(name="verify", description="Начать процесс верификации")
+    async def verify_command(interaction: discord.Interaction):
+        """Перенаправляет на страницу верификации"""
+        await interaction.response.send_message("Перейдите для верификации: https://siph-industry.com/verification", ephemeral=True)
+
+    print("Команды core успешно добавлены!")
