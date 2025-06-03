@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_connection():
+def get_db_connection():
     """Создание соединения с базой данных"""
     url = urlparse(os.getenv("DATABASE_URL"))
     return mysql.connector.connect(
@@ -18,7 +18,7 @@ def get_connection():
 
 def init_db():
     """Автоматическое создание всех нужных таблиц"""
-    conn = get_connection()
+    conn = get_db_connection()
     cursor = conn.cursor()
 
     # Таблица префиксов
@@ -57,7 +57,7 @@ def init_db():
         )
     """)
 
-    # Таблица верификации Roblox (исправлена ошибка)
+    # Таблица верификации Roblox
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verifications (
             discord_id BIGINT PRIMARY KEY,
@@ -70,7 +70,7 @@ def init_db():
         )
     """)
 
-    # ✅ Новая таблица verification_settings
+    # Таблица настроек верификации
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS verification_settings (
             guild_id BIGINT PRIMARY KEY,
@@ -85,7 +85,7 @@ def init_db():
 
 def execute_query(query, params=(), fetch_one=False, fetch_all=False):
     """Универсальное выполнение SQL-запросов"""
-    conn = get_connection()
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(query, params)
     result = None
