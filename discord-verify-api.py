@@ -1,12 +1,13 @@
 import os
-import json
 import requests
 import mysql.connector
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 app = Flask(__name__)
+CORS(app)  # Разрешить CORS
 load_dotenv()
 
 def get_db_connection():
@@ -49,14 +50,12 @@ def update_discord_profile(guild_id, discord_id, roblox_username):
     role_url = f"{DISCORD_API_BASE}/guilds/{guild_id}/members/{discord_id}/roles/{role_id}"
     nickname_url = f"{DISCORD_API_BASE}/guilds/{guild_id}/members/{discord_id}"
 
-    # Выдача роли
     response = requests.put(role_url, headers=headers)
     if not response.ok:
         print(f"Ошибка выдачи роли: {response.status_code} {response.text}")
         return False
 
-    # Смена ника
-    response = requests.patch(nickname_url, headers=headers, json={"nick": new_nickname})
+    response = requests.patch(nickname_url, headers=headers, json={"nick": new_nickname[:32]})
     if not response.ok:
         print(f"Ошибка смены ника: {response.status_code} {response.text}")
         return False
@@ -119,41 +118,7 @@ def verify_complete():
         cursor.close()
         conn.close()
 
-        # Обновление профиля Discord
         if update_discord_profile(guild_id, discord_id, roblox_name):
-            return jsonify({"success": True, "message": "Верификация успешна"}), 200
-        else:
-            return jsonify({"success": False, "error": "Ошибка обновления профиля Discord"}), 500
-
-    except Exception as e:
-        print(f"Ошибка верификации: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
-
-@app.route("/api/discord-verify", methods=["POST"])
-def verify_user():
-    """Устаревший маршрут, оставлен для совместимости"""
-    data = request.json
-    discord_id = data.get("discord_id")
-    roblox_id = data.get("roblox_id")
-    guild_id = data.get("guild_id")
-
-    if not discord_id or not roblox_id or not guild_id:
-        return jsonify({"success": False, "error": "Недостаточно данных"}), 400
-
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT display_name FROM verifications WHERE roblox_id = %s", (roblox_id,))
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not result:
-            return jsonify({"success": False, "error": "Пользователь не найден"}), 404
-
-        display_name = result[0]
-
-        if update_discord_profile(guild_id, discord_id, display_name):
             return jsonify({"success": True, "message": "Верификация успешна"}), 200
         else:
             return jsonify({"success": False, "error": "Ошибка обновления профиля Discord"}), 500
