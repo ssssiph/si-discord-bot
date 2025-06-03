@@ -4,8 +4,9 @@ from discord.ext import commands
 from db.db import execute_query
 import time
 
-def setup(bot):
+async def setup(bot):
     """Регистрация команд браков"""
+    print("Добавляю команды marriage...")
 
     @bot.tree.command(name="propose", description="Предложить брак пользователю")
     async def propose_command(interaction: discord.Interaction, user: discord.User):
@@ -138,3 +139,5 @@ def setup(bot):
             )
         except Exception as e:
             await interaction.response.send_message(f"❌ Ошибка: {e}", ephemeral=True)
+
+    print("Команды marriage добавлены!")
