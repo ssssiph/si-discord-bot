@@ -75,7 +75,7 @@ def init_db():
         CREATE TABLE IF NOT EXISTS verification_settings (
             guild_id BIGINT PRIMARY KEY,
             role_id BIGINT DEFAULT NULL,
-            username_format VARCHAR(255) DEFAULT NULL
+            username_format VARCHAR(255) DEFAULT '{roblox-name}'
         )
     """)
 
