@@ -4,8 +4,10 @@ from discord.ext import commands
 from db.db import execute_query
 
 def setup(bot):
+    print("Добавляю команды core...")
     bot.tree.add_command(SetupCommand(bot))
     bot.tree.add_command(VerifyCommand(bot))
+    print("Команды core добавлены!")
 
 @app_commands.command(name="setup", description="Настроить верификацию на сервере")
 @app_commands.checks.has_permissions(administrator=True)
