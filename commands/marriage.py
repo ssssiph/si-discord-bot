@@ -4,6 +4,7 @@ from discord.ext import commands
 from db.db import execute_query
 import time
 import logging
+import os
 
 # Настройка логирования
 logging.basicConfig(level=logging.DEBUG)
@@ -20,20 +21,23 @@ async def setup(bot):
         user_id = interaction.user.id
         logger.debug(f"Запуск info для пользователя {user_id}")
         try:
+            # Тест подключения к базе
+            test_conn = execute_query("SELECT 1", fetch_one=True)
+            logger.debug(f"Тест подключения к базе: {test_conn}")
             marriage = execute_query(
                 "SELECT partner_id, timestamp FROM marriages WHERE user_id = %s",
                 (user_id,),
                 fetch_one=True
             )
             logger.debug(f"Результат запроса: {marriage}")
-            if not marriage:
+            if marriage is None:
                 logger.info(f"Пользователь {user_id} не состоит в браке")
                 await interaction.response.send_message("❌ Вы не состоите в браке!", ephemeral=True)
                 return
             partner_id = marriage.get("partner_id")
             timestamp = marriage.get("timestamp")
             if not partner_id or not timestamp:
-                logger.error(f"Недостаточно данных для пользователя {user_id}: partner_id={partner_id}, timestamp={timestamp}")
+                logger.error(f"Недостаточно данных для {user_id}: partner_id={partner_id}, timestamp={timestamp}")
                 await interaction.response.send_message("❌ Ошибка: Недостаточно данных о браке.", ephemeral=True)
                 return
             logger.debug(f"Получение партнёра {partner_id}")
@@ -54,6 +58,9 @@ async def setup(bot):
         user_id = interaction.user.id
         logger.debug(f"Запуск list для пользователя {user_id}")
         try:
+            # Тест подключения к базе
+            test_conn = execute_query("SELECT 1", fetch_one=True)
+            logger.debug(f"Тест подключения к базе: {test_conn}")
             marriages = execute_query(
                 "SELECT partner_id, timestamp FROM marriages WHERE user_id = %s",
                 (user_id,),
