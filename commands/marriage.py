@@ -3,31 +3,39 @@ from discord import app_commands
 from discord.ext import commands
 from db.db import execute_query
 import time
+import logging
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 async def setup(bot):
     """Регистрация команд браков"""
-    print("Добавляю команды marriage...")
-
+    logger.info("Добавляю команды marriage...")
     marriage_group = app_commands.Group(name="marriage", description="Команды для управления браками")
 
     @marriage_group.command(name="info", description="Информация про брак")
     async def marriage_info(interaction: discord.Interaction):
         """Показывает информацию о текущем браке пользователя"""
         user_id = interaction.user.id
+        logger.info(f"Проверка брака для пользователя {user_id}")
         marriage = execute_query(
             "SELECT partner_id, timestamp FROM marriages WHERE user_id = %s",
             (user_id,),
             fetch_one=True
         )
         if not marriage:
+            logger.info(f"Пользователь {user_id} не состоит в браке")
             await interaction.response.send_message("❌ Вы не состоите в браке!", ephemeral=True)
             return
         partner_id = marriage.get("partner_id")
         timestamp = marriage.get("timestamp")
         if not partner_id or not timestamp:
+            logger.error(f"Недостаточно данных для пользователя {user_id}: partner_id={partner_id}, timestamp={timestamp}")
             await interaction.response.send_message("❌ Ошибка: Недостаточно данных о браке.", ephemeral=True)
             return
         try:
+            logger.info(f"Получение партнёра {partner_id}")
             partner = await bot.fetch_user(partner_id)
             embed = discord.Embed(
                 title="💍 Информация о браке",
@@ -36,18 +44,24 @@ async def setup(bot):
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
         except discord.NotFound:
+            logger.error(f"Партнёр {partner_id} не найден для пользователя {user_id}")
             await interaction.response.send_message("❌ Партнёр не найден.", ephemeral=True)
+        except Exception as e:
+            logger.error(f"Ошибка при обработке info: {e}")
+            await interaction.response.send_message("❌ Произошла ошибка.", ephemeral=True)
 
     @marriage_group.command(name="list", description="Просмотреть браки")
     async def marriage_list(interaction: discord.Interaction):
         """Показывает список всех браков пользователя"""
         user_id = interaction.user.id
+        logger.info(f"Получение списка браков для пользователя {user_id}")
         marriages = execute_query(
             "SELECT partner_id, timestamp FROM marriages WHERE user_id = %s",
             (user_id,),
             fetch_all=True
         )
         if not marriages:
+            logger.info(f"У пользователя {user_id} нет браков")
             await interaction.response.send_message("❌ У вас нет браков!", ephemeral=True)
             return
         embed = discord.Embed(title="💞 Ваши браки", color=0xCCB4E4)
@@ -55,6 +69,7 @@ async def setup(bot):
             partner_id = marriage.get("partner_id")
             timestamp = marriage.get("timestamp")
             if not partner_id or not timestamp:
+                logger.error(f"Недостаточно данных в браке для пользователя {user_id}: partner_id={partner_id}, timestamp={timestamp}")
                 embed.add_field(
                     name="Ошибка",
                     value="Недостаточно данных о партнёре.",
@@ -62,6 +77,7 @@ async def setup(bot):
                 )
                 continue
             try:
+                logger.info(f"Получение партнёра {partner_id}")
                 partner = await bot.fetch_user(partner_id)
                 embed.add_field(
                     name=f"Партнёр: {partner.name}",
@@ -69,9 +85,17 @@ async def setup(bot):
                     inline=False
                 )
             except discord.NotFound:
+                logger.error(f"Партнёр {partner_id} не найден для пользователя {user_id}")
                 embed.add_field(
                     name="Ошибка",
                     value="Партнёр не найден.",
+                    inline=False
+                )
+            except Exception as e:
+                logger.error(f"Ошибка при обработке партнёра {partner_id}: {e}")
+                embed.add_field(
+                    name="Ошибка",
+                    value="Произошла ошибка при загрузке.",
                     inline=False
                 )
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -245,4 +269,4 @@ async def setup(bot):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     bot.tree.add_command(marriage_group)
-    print("Команды marriage успешно добавлены!")
+    logger.info("Команды marriage успешно добавлены!")
