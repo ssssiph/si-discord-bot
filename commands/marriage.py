@@ -22,15 +22,21 @@ async def setup(bot):
         if not marriage:
             await interaction.response.send_message("❌ Вы не состоите в браке!", ephemeral=True)
             return
-        partner_id = marriage["partner_id"]
-        timestamp = marriage["timestamp"]
-        partner = await bot.fetch_user(partner_id)
-        embed = discord.Embed(
-            title="💍 Информация о браке",
-            description=f"Вы в браке с {partner.mention} с {timestamp.strftime('%Y-%m-%d %H:%M:%S')}.",
-            color=0xCCB4E4
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        partner_id = marriage.get("partner_id")
+        timestamp = marriage.get("timestamp")
+        if not partner_id or not timestamp:
+            await interaction.response.send_message("❌ Ошибка: Недостаточно данных о браке.", ephemeral=True)
+            return
+        try:
+            partner = await bot.fetch_user(partner_id)
+            embed = discord.Embed(
+                title="💍 Информация о браке",
+                description=f"Вы в браке с {partner.mention} с {timestamp.strftime('%Y-%m-%d %H:%M:%S')}.",
+                color=0xCCB4E4
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except discord.NotFound:
+            await interaction.response.send_message("❌ Партнёр не найден.", ephemeral=True)
 
     @marriage_group.command(name="list", description="Просмотреть браки")
     async def marriage_list(interaction: discord.Interaction):
@@ -46,13 +52,28 @@ async def setup(bot):
             return
         embed = discord.Embed(title="💞 Ваши браки", color=0xCCB4E4)
         for marriage in marriages:
-            partner_id = marriage["partner_id"]
-            partner = await bot.fetch_user(partner_id)
-            embed.add_field(
-                name=f"Партнёр: {partner.name}",
-                value=f"Дата: {marriage['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}",
-                inline=False
-            )
+            partner_id = marriage.get("partner_id")
+            timestamp = marriage.get("timestamp")
+            if not partner_id or not timestamp:
+                embed.add_field(
+                    name="Ошибка",
+                    value="Недостаточно данных о партнёре.",
+                    inline=False
+                )
+                continue
+            try:
+                partner = await bot.fetch_user(partner_id)
+                embed.add_field(
+                    name=f"Партнёр: {partner.name}",
+                    value=f"Дата: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+                    inline=False
+                )
+            except discord.NotFound:
+                embed.add_field(
+                    name="Ошибка",
+                    value="Партнёр не найден.",
+                    inline=False
+                )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @marriage_group.command(name="marry", description="Сделать предложение")
@@ -192,13 +213,28 @@ async def setup(bot):
             return
         embed = discord.Embed(title="💌 Ваши предложения", color=0xCCB4E4)
         for proposal in proposals:
-            proposer_id = proposal["proposer_id"]
-            proposer = await bot.fetch_user(proposer_id)
-            embed.add_field(
-                name=f"От: {proposer.name}",
-                value=f"Дата: {proposal['timestamp'].strftime('%Y-%m-%d %H:%M:%S')}",
-                inline=False
-            )
+            proposer_id = proposal.get("proposer_id")
+            timestamp = proposal.get("timestamp")
+            if not proposer_id or not timestamp:
+                embed.add_field(
+                    name="Ошибка",
+                    value="Недостаточно данных о предложении.",
+                    inline=False
+                )
+                continue
+            try:
+                proposer = await bot.fetch_user(proposer_id)
+                embed.add_field(
+                    name=f"От: {proposer.name}",
+                    value=f"Дата: {timestamp.strftime('%Y-%m-%d %H:%M:%S')}",
+                    inline=False
+                )
+            except discord.NotFound:
+                embed.add_field(
+                    name="Ошибка",
+                    value="Предложивший не найден.",
+                    inline=False
+                )
         total_proposals = execute_query(
             "SELECT COUNT(*) FROM marriage_proposals WHERE target_id = %s",
             (user_id,),
